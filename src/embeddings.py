@@ -41,14 +41,18 @@ class _TextEncoder:
         raise NotImplementedError
 
     @torch.no_grad()
+    def encode_batch(self, texts: Sequence[str]) -> dict:
+        """Encode one batch. Returns CPU tensors in the encoder's dtype."""
+        tokens = self._tokenize(texts).to(self.device)
+        return {k: v.detach().cpu() for k, v in self._forward(tokens).items()}
+
     def encode(self, texts: Sequence[str], batch_size: int = 64, show_progress: bool = False) -> dict:
-        """Batch-encode texts. Returns CPU tensors in the encoder's dtype."""
+        """Encode texts in batches and concatenate the results."""
         outs: dict[str, list[torch.Tensor]] = {}
         batches = range(0, len(texts), batch_size)
         for start in tqdm(batches, desc=f"encode[{self.name}]", disable=not show_progress):
-            tokens = self._tokenize(texts[start : start + batch_size]).to(self.device)
-            for k, v in self._forward(tokens).items():
-                outs.setdefault(k, []).append(v.detach().cpu())
+            for k, v in self.encode_batch(texts[start : start + batch_size]).items():
+                outs.setdefault(k, []).append(v)
         return {k: torch.cat(v) for k, v in outs.items()}
 
 
@@ -56,27 +60,33 @@ class ClipTextEncoder(_TextEncoder):
     """CLIP ViT-L/14 text tower.
 
     The output keys are:
-    - last_hidden_state: [N, 77, 768], the exact tensor SD 1.5 feeds to U-Net cross-attention.
+    - last_hidden_state: [N, 77, 768], the exact tensor SD 1.5 feeds to U-Net cross-attention
+      (encoded without an attention mask, as the SD pipeline does).
     - pooled: [N, 768], the EOS-token embedding after final layer norm.
     - text_embeds: [N, 768], pooled projected into CLIP's joint text-image space.
     """
 
     name = "clip"
 
-    def __init__(self, model_id: str = "openai/clip-vit-large-patch14", with_vision: bool = False, **kw):
+    def __init__(self, model_id: str = "openai/clip-vit-large-patch14", with_vision: bool = False,
+                 revision: str | None = None, **kw):
         super().__init__(**kw)
         from transformers import CLIPModel, CLIPProcessor, CLIPTextModelWithProjection, CLIPTokenizer
 
         self.model_id = model_id
+        self.revision = revision
         self.with_vision = with_vision
-        self.tokenizer = CLIPTokenizer.from_pretrained(model_id)
+        self.tokenizer = CLIPTokenizer.from_pretrained(model_id, revision=revision)
         # Both classes expose .text_model and .text_projection. CLIPModel adds the vision tower.
         cls = CLIPModel if with_vision else CLIPTextModelWithProjection
-        self.model = cls.from_pretrained(model_id, dtype=self.dtype).to(self.device).eval()
-        self.processor = CLIPProcessor.from_pretrained(model_id) if with_vision else None
+        self.model = cls.from_pretrained(model_id, revision=revision, dtype=self.dtype).to(self.device).eval()
+        self.processor = CLIPProcessor.from_pretrained(model_id, revision=revision) if with_vision else None
 
     def _forward(self, tokens) -> dict:
-        out = self.model.text_model(input_ids=tokens.input_ids, attention_mask=tokens.attention_mask)
+        # No attention_mask, deliberately. SD 1.5's pipeline calls its CLIP text encoder without one,
+        # so this gives the exact hidden states the U-Net conditions on, padding positions included.
+        # The EOS pooled output is unaffected, because CLIP's causal mask already hides later padding.
+        out = self.model.text_model(input_ids=tokens.input_ids)
         return {
             "last_hidden_state": out.last_hidden_state,
             "pooled": out.pooler_output,
@@ -109,13 +119,14 @@ class BertTextEncoder(_TextEncoder):
 
     name = "bert"
 
-    def __init__(self, model_id: str = "google-bert/bert-base-uncased", **kw):
+    def __init__(self, model_id: str = "google-bert/bert-base-uncased", revision: str | None = None, **kw):
         super().__init__(**kw)
         from transformers import AutoModel, AutoTokenizer
 
         self.model_id = model_id
-        self.tokenizer = AutoTokenizer.from_pretrained(model_id)
-        self.model = AutoModel.from_pretrained(model_id, dtype=self.dtype).to(self.device).eval()
+        self.revision = revision
+        self.tokenizer = AutoTokenizer.from_pretrained(model_id, revision=revision)
+        self.model = AutoModel.from_pretrained(model_id, revision=revision, dtype=self.dtype).to(self.device).eval()
 
     def _forward(self, tokens) -> dict:
         out = self.model(**tokens)
@@ -161,7 +172,7 @@ def encode_and_save(encoder: _TextEncoder, records: list[dict], out_dir: Path, b
     first_rows = [i for i, (_, j) in enumerate(index) if j == 0]
     first_set = set(first_rows)
     for start in tqdm(range(0, len(texts), batch_size), desc=f"encode[{encoder.name}]"):
-        out = encoder.encode(texts[start : start + batch_size], batch_size=batch_size)
+        out = encoder.encode_batch(texts[start : start + batch_size])
         for k in ("pooled", "text_embeds", "mean_pooled"):
             if k in out:
                 pooled.setdefault(k, []).append(out[k].half())
@@ -170,6 +181,7 @@ def encode_and_save(encoder: _TextEncoder, records: list[dict], out_dir: Path, b
             first_hidden.append(out["last_hidden_state"][keep].half())
     payload = {
         "model_id": encoder.model_id,
+        "revision": encoder.revision,
         "field": field,
         "index": index,
         "first_caption_rows": first_rows,

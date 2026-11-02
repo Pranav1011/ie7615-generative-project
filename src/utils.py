@@ -42,7 +42,6 @@ def set_seed(seed: int, deterministic: bool = False) -> None:
     """Seed python, numpy and torch (CPU + all CUDA devices)."""
     random.seed(seed)
     np.random.seed(seed)
-    os.environ["PYTHONHASHSEED"] = str(seed)
     try:
         import torch
     except ImportError:
@@ -81,12 +80,17 @@ def is_colab() -> bool:
     return "COLAB_RELEASE_TAG" in os.environ
 
 
+def _root_override() -> str | None:
+    """IE7615_ARTIFACT_ROOT if it is set to something non-empty."""
+    return os.environ.get("IE7615_ARTIFACT_ROOT") or None
+
+
 def artifact_root(cfg: dict) -> Path:
     """Where large artifacts live: Google Drive on Colab, ./data in the repo otherwise.
 
     Override with the IE7615_ARTIFACT_ROOT environment variable.
     """
-    override = os.environ.get("IE7615_ARTIFACT_ROOT")
+    override = _root_override()
     if override:
         root = Path(override)
     elif is_colab():
@@ -101,7 +105,7 @@ def get_paths(cfg: dict) -> dict[str, Path]:
     """Resolve every configured path. Large-artifact paths sit under artifact_root()."""
     root = artifact_root(cfg)
     p = cfg["paths"]
-    scratch = Path(p["colab_scratch_root"]) if is_colab() and "IE7615_ARTIFACT_ROOT" not in os.environ else root
+    scratch = Path(p["colab_scratch_root"]) if is_colab() and not _root_override() else root
     paths = {
         "root": root,
         "raw": root / p["raw"],

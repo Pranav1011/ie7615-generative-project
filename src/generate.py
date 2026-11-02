@@ -30,11 +30,13 @@ def load_pipeline(cfg: dict, scheduler: str | None = None, device: str | None = 
     device = device or get_device()
     dtype = torch.float16 if device == "cuda" else torch.float32
     m = cfg["models"]
-    kwargs = {"torch_dtype": dtype}
+    revision = (m.get("revisions") or {}).get("diffusion")
+    kwargs = {"torch_dtype": dtype, "revision": revision}
     if dtype == torch.float16 and m.get("diffusion_variant"):
         kwargs["variant"] = m["diffusion_variant"]
     pipe = StableDiffusionPipeline.from_pretrained(m["diffusion"], **kwargs).to(device)
     pipe._ie7615_model_id = m["diffusion"]
+    pipe._ie7615_revision = revision
     set_scheduler(pipe, scheduler or cfg["generation"]["scheduler"])
     if cfg["generation"].get("attention_slicing", True):
         pipe.enable_attention_slicing()
@@ -113,6 +115,7 @@ def generate(
         "scheduler": getattr(pipe, "_ie7615_scheduler", type(pipe.scheduler).__name__),
         "scheduler_class": type(pipe.scheduler).__name__,
         "model_id": getattr(pipe, "_ie7615_model_id", None),
+        "model_revision": getattr(pipe, "_ie7615_revision", None),
         "dtype": str(pipe.unet.dtype),
         "used_prompt_embeds": prompt_embeds is not None,
         "nsfw_flagged": nsfw,
@@ -153,7 +156,18 @@ def run_prompt_set(pipe, prompts: list[dict], cfg: dict, out_dir: str | Path, se
     grid = make_image_grid(images, [p["prompt"] for p in prompts], ncols=len(images))
     grid.save(out_dir / "grid.png")
     save_json(
-        {"settings": {"seed": seed, **g, "model_id": cfg["models"]["diffusion"]}, "runs": metas},
+        {
+            "settings": {
+                "seed": seed,
+                **g,
+                # What the pipeline actually ran with, which may differ from the config default
+                "scheduler": getattr(pipe, "_ie7615_scheduler", type(pipe.scheduler).__name__),
+                "scheduler_class": type(pipe.scheduler).__name__,
+                "model_id": getattr(pipe, "_ie7615_model_id", None),
+                "model_revision": getattr(pipe, "_ie7615_revision", None),
+            },
+            "runs": metas,
+        },
         out_dir / "prompts.json",
         add_env=True,
     )
