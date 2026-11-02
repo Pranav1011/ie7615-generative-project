@@ -1,0 +1,29 @@
+# Large artifacts live on Google Drive, never in git
+data/
+embeddings/
+checkpoints/
+*.pt
+*.npy
+*.npz
+*.safetensors
+*.ckpt
+*.zip
+*.part
+
+# Outputs: only the small Milestone 1 samples are committed
+outputs/*
+!outputs/milestone1_samples/
+outputs/milestone1_samples/*
+!outputs/milestone1_samples/*.png
+!outputs/milestone1_samples/*.json
+!outputs/milestone1_samples/.gitkeep
+
+# Python / tooling
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ipynb_checkpoints/
+*.egg-info/
+.DS_Store
+.claude/

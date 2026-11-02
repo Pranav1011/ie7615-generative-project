@@ -1,0 +1,80 @@
+# Central config. Every notebook and src module reads from here.
+project_name: ie7615-generative
+seed: 42
+
+paths:
+  # On Colab, large artifacts go to Drive. Locally they fall back to ./data under the repo.
+  drive_root: /content/drive/MyDrive/ie7615-generative
+  local_root: data
+  # Original images are extracted to fast local disk on Colab (re-extracted from
+  # the Drive zip if the runtime was reset). Locally they sit under local_root.
+  colab_scratch_root: /content/scratch
+  # Sub-directories, relative to the resolved artifact root
+  raw: coco/raw
+  images: coco/val2017        # relative to the scratch root on Colab
+  annotations: coco/annotations
+  cache: coco/val2017_512     # 512x512 JPEG cache; manifest file_path points here
+  manifest: coco/manifest.jsonl
+  embeddings: embeddings
+  outputs: outputs
+  # Committed sample outputs, relative to the repo root
+  milestone1_samples: outputs/milestone1_samples
+
+data:
+  base_url: http://images.cocodataset.org
+  annotations_zip: annotations/annotations_trainval2017.zip
+  images_zip: zips/val2017.zip
+  captions_file: captions_val2017.json
+  min_words: 4
+  max_words: 40
+
+image:
+  size: 512
+  jpeg_quality: 95
+
+models:
+  clip: openai/clip-vit-large-patch14
+  bert: google-bert/bert-base-uncased
+  diffusion: stable-diffusion-v1-5/stable-diffusion-v1-5
+  diffusion_variant: fp16
+
+embeddings:
+  batch_size: 64
+  max_length: 77
+
+generation:
+  steps: 30
+  guidance_scale: 7.5
+  scheduler: pndm  # pndm (SD 1.5 default) | ddim | dpm
+  height: 512
+  width: 512
+  attention_slicing: true
+
+# Milestone 1 prompts: 2 real COCO val captions, then 3 custom prompts of
+# increasing complexity (single object -> multi-object + spatial -> style).
+# COCO captions are copied verbatim (cleaned) from captions_val2017.json.
+milestone1_prompts:
+  - id: p1_coco_zebra
+    source: coco_val2017
+    image_id: 508586
+    caption_id: 422569
+    complexity: real caption (natural scene)
+    prompt: Herd of zebra grazing on dried grasses in open field.
+  - id: p2_coco_train
+    source: coco_val2017
+    image_id: 201148
+    caption_id: 228512
+    complexity: real caption (urban scene)
+    prompt: A train traveling down tracks next to a brick building.
+  - id: p3_single_object
+    source: custom
+    complexity: single object
+    prompt: a red apple on a white wooden table
+  - id: p4_spatial
+    source: custom
+    complexity: multi-object + spatial relation
+    prompt: a cat sitting to the left of a dog on a park bench
+  - id: p5_style
+    source: custom
+    complexity: scene + style descriptor
+    prompt: a lighthouse on a rocky cliff at sunset, watercolor painting

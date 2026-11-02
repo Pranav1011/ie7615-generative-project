@@ -1,0 +1,17 @@
+# Pinned for Google Colab (Python 3.13, CUDA torch preinstalled).
+# torch / torchvision are intentionally NOT pinned: Colab ships a CUDA-matched
+# build and reinstalling it is slow and fragile. Notebook 00 prints the actual
+# versions so pins can be tightened after the first run.
+diffusers==0.42.1
+transformers==5.22.1
+accelerate==1.15.0
+safetensors==0.8.0
+pycocotools==2.0.11
+torchmetrics==1.9.0
+torch-fidelity==0.4.0
+pyyaml>=6.0
+pillow>=10.0
+pandas>=2.0
+matplotlib>=3.8
+tqdm>=4.66
+requests>=2.31
