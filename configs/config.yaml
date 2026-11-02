@@ -25,6 +25,12 @@ data:
   annotations_zip: annotations/annotations_trainval2017.zip
   images_zip: zips/val2017.zip
   captions_file: captions_val2017.json
+  # MD5 of the official zips (images.cocodataset.org serves plain http only).
+  # The annotations MD5 was checked against a real download on 2026-11-02.
+  # Set a value to null to skip that check.
+  md5:
+    annotations_trainval2017.zip: f4bbac642086de4f52a3fdda2de5fa2c
+    val2017.zip: 442b8da7639aecaf257c1dceb8ba8c80
   min_words: 4
   max_words: 40
 
@@ -37,6 +43,11 @@ models:
   bert: google-bert/bert-base-uncased
   diffusion: stable-diffusion-v1-5/stable-diffusion-v1-5
   diffusion_variant: fp16
+  # Hub commit SHAs (resolved 2026-11-02), so later upstream edits can't change results.
+  revisions:
+    clip: 32bd64288804d66eefd0ccbe215aa642df71cc41
+    bert: 86b5e0934494bd15c9632b12f734a8a67f723594
+    diffusion: 451f4fe16113bff5a5d2269ed5ad43b0592e9a14
 
 embeddings:
   batch_size: 64

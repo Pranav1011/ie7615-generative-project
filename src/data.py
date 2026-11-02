@@ -6,6 +6,7 @@ their outputs already exist (pass force=True to rebuild).
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import zipfile
@@ -22,11 +23,38 @@ _WS = re.compile(r"\s+")
 # ---------------------------------------------------------------- download / extract
 
 
-def download(url: str, dest: Path, chunk: int = 1 << 20, timeout: int = 60) -> Path:
-    """Stream url to dest. Skips if dest exists; writes to dest.part then renames,
-    so an interrupted download never looks complete."""
+def md5sum(path: Path, chunk: int = 1 << 20) -> str:
+    h = hashlib.md5()
+    with open(path, "rb") as f:
+        while block := f.read(chunk):
+            h.update(block)
+    return h.hexdigest()
+
+
+def verify_md5(path: Path, expected: str | None, label: str | None = None) -> None:
+    """Raise if path's MD5 differs from expected. Skipped when expected is None."""
+    if not expected:
+        return
+    actual = md5sum(path)
+    if actual != expected:
+        name = label or Path(path).name
+        raise IOError(
+            f"MD5 mismatch for {name}: got {actual}, expected {expected}. Delete {path} and rerun "
+            f"to re-download. If the official file really changed, set data.md5['{name}'] to null "
+            "in configs/config.yaml."
+        )
+
+
+def download(url: str, dest: Path, md5: str | None = None, chunk: int = 1 << 20, timeout: int = 60) -> Path:
+    """Stream url to dest, verifying the MD5 when one is given.
+
+    The data goes to dest.part and is renamed only after the size and checksum
+    match, so an interrupted or tampered download never looks complete. An
+    existing dest is re-verified before reuse.
+    """
     dest = Path(dest)
     if dest.exists() and dest.stat().st_size > 0:
+        verify_md5(dest, md5)
         print(f"[skip] {dest.name} already downloaded")
         return dest
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -40,6 +68,11 @@ def download(url: str, dest: Path, chunk: int = 1 << 20, timeout: int = 60) -> P
                 bar.update(len(block))
     if total is not None and tmp.stat().st_size != total:
         raise IOError(f"Incomplete download of {url}: {tmp.stat().st_size} of {total} bytes")
+    try:
+        verify_md5(tmp, md5, label=dest.name)
+    except IOError:
+        tmp.unlink()
+        raise
     tmp.replace(dest)
     return dest
 
@@ -61,9 +94,11 @@ def safe_extract(zip_path: Path, out_dir: Path, members: Iterable[str] | None = 
             if target.exists():
                 continue
             target.parent.mkdir(parents=True, exist_ok=True)
-            with zf.open(name) as src, open(target, "wb") as dst:
+            tmp = target.with_name(target.name + ".part")
+            with zf.open(name) as src, open(tmp, "wb") as dst:
                 while block := src.read(1 << 20):
                     dst.write(block)
+            tmp.replace(target)  # an interrupted extraction never leaves a file that looks finished
             written.append(target)
     return written
 
@@ -72,10 +107,12 @@ def download_coco_val(cfg: dict, paths: dict[str, Path], images: bool = True) ->
     """Fetch captions_val2017.json and (optionally) the 5,000 val2017 images."""
     d = cfg["data"]
     base = d["base_url"].rstrip("/")
+    md5 = d.get("md5") or {}
 
     captions_path = paths["annotations"] / d["captions_file"]
     if not captions_path.exists():
-        ann_zip = download(f"{base}/{d['annotations_zip']}", paths["raw"] / Path(d["annotations_zip"]).name)
+        ann_name = Path(d["annotations_zip"]).name
+        ann_zip = download(f"{base}/{d['annotations_zip']}", paths["raw"] / ann_name, md5=md5.get(ann_name))
         # Only the val captions file is needed. The archive stores it under annotations/.
         safe_extract(ann_zip, paths["annotations"].parent, members=[f"annotations/{d['captions_file']}"])
     else:
@@ -85,7 +122,8 @@ def download_coco_val(cfg: dict, paths: dict[str, Path], images: bool = True) ->
         if paths["images"].is_dir() and sum(1 for _ in paths["images"].glob("*.jpg")) >= 5000:
             print("[skip] val2017 images already extracted")
         else:
-            img_zip = download(f"{base}/{d['images_zip']}", paths["raw"] / Path(d["images_zip"]).name)
+            img_name = Path(d["images_zip"]).name
+            img_zip = download(f"{base}/{d['images_zip']}", paths["raw"] / img_name, md5=md5.get(img_name))
             safe_extract(img_zip, paths["images"].parent)
     return {"captions": captions_path, "images": paths["images"]}
 
@@ -148,6 +186,8 @@ def build_manifest(
             reasons["image_without_captions"] += 1
             continue
         img = images[image_id]
+        if Path(img["file_name"]).name != img["file_name"]:
+            raise ValueError(f"Unexpected file_name in captions JSON: {img['file_name']!r}")
         records.append(
             {
                 "image_id": image_id,
@@ -166,6 +206,7 @@ def build_manifest(
         "dropped": dict(reasons),
         "min_words": min_words,
         "max_words": max_words,
+        "cache_rel_dir": cache_rel_dir,
     }
     return records, stats
 
@@ -199,13 +240,22 @@ def manifest_to_frame(records: list[dict]):
 
 
 def prepare_manifest(cfg: dict, paths: dict[str, Path], force: bool = False) -> tuple[list[dict], dict]:
-    """Build and save the manifest (plus a stats JSON next to it). Reuses it if it already exists."""
+    """Build and save the manifest, plus a stats JSON next to it.
+
+    An existing manifest is reused only if it was built with the current
+    filter and cache settings. Otherwise it is rebuilt.
+    """
     from .utils import load_json, save_json
 
     stats_path = paths["manifest"].with_suffix(".stats.json")
+    wanted = {"min_words": cfg["data"]["min_words"], "max_words": cfg["data"]["max_words"],
+              "cache_rel_dir": cfg["paths"]["cache"]}
     if paths["manifest"].exists() and stats_path.exists() and not force:
-        print(f"[skip] manifest exists at {paths['manifest']}")
-        return load_manifest(paths["manifest"]), load_json(stats_path)
+        stats = load_json(stats_path)
+        if all(stats.get(k) == v for k, v in wanted.items()):
+            print(f"[skip] manifest exists at {paths['manifest']}")
+            return load_manifest(paths["manifest"]), stats
+        print("[rebuild] manifest settings changed:", {k: (stats.get(k), v) for k, v in wanted.items()})
     records, stats = build_manifest(
         paths["annotations"] / cfg["data"]["captions_file"],
         cfg["paths"]["cache"],
