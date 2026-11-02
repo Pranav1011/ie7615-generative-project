@@ -138,3 +138,54 @@ def test_slugify():
     from src.generate import slugify
 
     assert slugify("A cat, left of a DOG!") == "a_cat_left_of_a_dog"
+
+
+def test_verify_md5(tmp_path):
+    f = tmp_path / "a.bin"
+    f.write_bytes(b"hello")
+    data.verify_md5(f, "5d41402abc4b2a76b9719d911017c592")
+    data.verify_md5(f, None)
+    with pytest.raises(IOError, match="MD5 mismatch"):
+        data.verify_md5(f, "0" * 32)
+
+
+def test_build_manifest_rejects_path_in_file_name(mini_coco):
+    cap_path, _ = mini_coco
+    raw = json.loads(cap_path.read_text())
+    raw["images"][0]["file_name"] = "../../evil.jpg"
+    cap_path.write_text(json.dumps(raw))
+    with pytest.raises(ValueError, match="Unexpected file_name"):
+        data.build_manifest(cap_path)
+
+
+def test_prepare_manifest_rebuilds_when_filters_change(mini_coco, tmp_path):
+    cap_path, _ = mini_coco
+    cfg = utils.load_config()
+    cfg["data"]["captions_file"] = cap_path.name
+    paths = {"manifest": tmp_path / "m.jsonl", "annotations": cap_path.parent}
+    records, _ = data.prepare_manifest(cfg, paths)
+    assert sum(len(r["captions"]) for r in records) == 2
+    cfg["data"]["min_words"] = 8  # both kept captions have 6-7 words
+    records, stats = data.prepare_manifest(cfg, paths)
+    assert stats["min_words"] == 8 and records == []
+
+
+def test_encode_and_save_roundtrip_weights_only(tmp_path):
+    from src import embeddings
+
+    class FakeEncoder(embeddings._TextEncoder):
+        name, model_id, revision = "fake", "fake/model", "abc123"
+
+        def __init__(self):
+            self.device, self.dtype, self.max_length = "cpu", torch.float32, 77
+
+        def encode_batch(self, texts):
+            n = len(texts)
+            return {"last_hidden_state": torch.randn(n, 77, 8), "pooled": torch.randn(n, 8)}
+
+    records = [{"image_id": i, "captions": [{"clean": f"c{i}{j}"} for j in range(3)]} for i in range(5)]
+    path = embeddings.encode_and_save(FakeEncoder(), records, tmp_path, batch_size=4)
+    blob = torch.load(path, weights_only=True)
+    assert blob["pooled"].shape == (15, 8) and blob["pooled"].dtype == torch.float16
+    assert blob["first_caption_hidden"].shape == (5, 77, 8)
+    assert blob["first_caption_rows"] == [0, 3, 6, 9, 12] and blob["revision"] == "abc123"

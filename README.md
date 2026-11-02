@@ -55,6 +55,8 @@ The original images are extracted to the Colab VM's local disk (`/content/scratc
 - `set_seed()` seeds Python, NumPy and torch. Every image is drawn from its own `torch.Generator` seeded with the configured seed (42).
 - Every generated image gets a JSON sidecar. It records the prompt, seed, steps, guidance, scheduler, model ID, dtype, elapsed time, peak VRAM, library versions and GPU.
 - **Pinned versions:** `requirements.txt` pins diffusers 0.42.1, transformers 5.22.1, accelerate 1.15.0 and safetensors 0.8.0. Colab's own CUDA build of torch is used as-is.
+- **Integrity:** COCO zips are checked against their MD5s, and a mismatch stops the run. Each model is pinned to a Hub commit SHA (`models.revisions` in the config), and that SHA is logged in every sidecar.
+- **CLIP embeddings:** saved embeddings are encoded without an attention mask, exactly as the SD pipeline encodes prompts, so they can be passed straight back in as `prompt_embeds`.
 - **Model IDs** (checked on the Hugging Face Hub 2026-11-02):
   - `stable-diffusion-v1-5/stable-diffusion-v1-5` (the `runwayml/` repo was taken down in 2024 and now redirects here)
   - `openai/clip-vit-large-patch14`
