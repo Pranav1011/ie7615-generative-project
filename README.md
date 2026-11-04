@@ -80,6 +80,22 @@ Seed 42, 30 steps, guidance 7.5, PNDM. Two prompts are real COCO captions and th
 | p4_spatial | a cat sitting to the left of a dog on a park bench | multiple objects + spatial relation |
 | p5_style | a lighthouse on a rocky cliff at sunset, watercolor painting | scene + style descriptor |
 
+### Results
+
+![Milestone 1 samples](outputs/milestone1_samples/grid.png)
+
+These come from one run with seed 42: a Colab T4, Python 3.13.16, torch 2.11.0+cu130, about 6.5–9 s per image and 3.4 GB peak VRAM. No image was flagged by the safety checker.
+
+| Prompt | Result |
+|---|---|
+| p1 zebra | Faithful to the caption (see `coco_real_vs_generated.png`). |
+| p2 train | Train and tracks are correct, but it shows modern towers instead of a brick building. The modifier was dropped. |
+| p3 apple | The object is right, but the table is dark wood, not white. The attribute was not bound to its object. |
+| p4 cat + dog | Two cats and no dog, so one object replaced another, and the left/right relation was lost. |
+| p5 lighthouse | The watercolor style was applied well. |
+
+The failures in p2–p4 are the known compositional limits of SD 1.5's CLIP conditioning. Later milestones will measure them with guidance-scale sweeps and CLIP score.
+
 ## Local development (optional, CPU only)
 ```bash
 uv venv .venv && uv pip install --python .venv/bin/python torch torchvision --index-url https://download.pytorch.org/whl/cpu

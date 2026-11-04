@@ -1,0 +1,40 @@
+{
+  "prompt": "a red apple on a white wooden table",
+  "negative_prompt": null,
+  "seed": 42,
+  "steps": 30,
+  "guidance_scale": 7.5,
+  "height": 512,
+  "width": 512,
+  "scheduler": "pndm",
+  "scheduler_class": "PNDMScheduler",
+  "model_id": "stable-diffusion-v1-5/stable-diffusion-v1-5",
+  "model_revision": "451f4fe16113bff5a5d2269ed5ad43b0592e9a14",
+  "dtype": "torch.float16",
+  "used_prompt_embeds": false,
+  "nsfw_flagged": false,
+  "elapsed_sec": 6.52,
+  "peak_vram_gb": 3.42,
+  "id": "p3_single_object",
+  "source": "custom",
+  "complexity": "single object",
+  "file": "p3_single_object.png",
+  "timestamp_utc": "2026-11-04T15:34:00+00:00",
+  "environment": {
+    "python": "3.13.16",
+    "packages": {
+      "torch": "2.11.0+cu130",
+      "torchvision": "0.26.0+cu130",
+      "diffusers": "0.42.1",
+      "transformers": "5.22.1",
+      "accelerate": "1.15.0",
+      "safetensors": "0.8.0",
+      "pycocotools": "2.0.11",
+      "numpy": "2.4.6",
+      "pillow": "11.3.0"
+    },
+    "cuda_available": true,
+    "gpu": "Tesla T4",
+    "cuda": "13.0"
+  }
+}
