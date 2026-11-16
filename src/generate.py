@@ -71,6 +71,7 @@ def generate(
     height: int = 512,
     width: int = 512,
     prompt_embeds: torch.Tensor | None = None,
+    negative_prompt_embeds: torch.Tensor | None = None,
     extra_meta: dict | None = None,
 ):
     """Generate one image. If out_dir is given, write <name>.png plus a <name>.json sidecar.
@@ -81,6 +82,8 @@ def generate(
     """
     if prompt is None and prompt_embeds is None:
         raise ValueError("Pass a prompt or prompt_embeds")
+    if prompt_embeds is not None and negative_prompt is not None:
+        raise ValueError("Pass negative_prompt_embeds (not negative_prompt) when using prompt_embeds")
     device = pipe.device.type
     generator = make_generator(seed, device="cpu" if device == "mps" else device)
     call = dict(
@@ -89,12 +92,14 @@ def generate(
         height=height,
         width=width,
         generator=generator,
-        negative_prompt=negative_prompt,
     )
     if prompt_embeds is not None:
         call["prompt_embeds"] = prompt_embeds.to(pipe.device, pipe.unet.dtype)
+        if negative_prompt_embeds is not None:
+            call["negative_prompt_embeds"] = negative_prompt_embeds.to(pipe.device, pipe.unet.dtype)
     else:
         call["prompt"] = prompt
+        call["negative_prompt"] = negative_prompt
 
     if device == "cuda":
         torch.cuda.reset_peak_memory_stats()
@@ -118,6 +123,7 @@ def generate(
         "model_revision": getattr(pipe, "_ie7615_revision", None),
         "dtype": str(pipe.unet.dtype),
         "used_prompt_embeds": prompt_embeds is not None,
+        "used_negative_prompt_embeds": negative_prompt_embeds is not None,
         "nsfw_flagged": nsfw,
         "elapsed_sec": round(elapsed, 2),
         "peak_vram_gb": round(torch.cuda.max_memory_allocated() / 1e9, 2) if device == "cuda" else None,
