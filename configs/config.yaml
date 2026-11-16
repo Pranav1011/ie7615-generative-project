@@ -61,6 +61,24 @@ generation:
   width: 512
   attention_slicing: true
 
+bert_adapter:
+  hidden_dim: 768
+  num_layers: 2
+  dropout: 0.1
+  batch_size: 128
+  epochs: 15
+  lr: 3.0e-4
+  weight_decay: 1.0e-2
+  val_split: 0.1
+  mse_weight: 1.0
+  cosine_weight: 0.5
+
+milestone2_sweeps:
+  guidance_scales: [1.0, 3.0, 5.0, 7.5, 10.0, 15.0]
+  schedulers: [pndm, ddim, dpm, euler]
+  steps_list: [10, 20, 30, 50]
+  eval_clip_model: openai/clip-vit-base-patch32
+
 # Milestone 1 prompts: 2 real COCO val captions, then 3 custom prompts of
 # increasing complexity (single object -> multi-object + spatial -> style).
 # COCO captions are copied verbatim (cleaned) from captions_val2017.json.
