@@ -17,6 +17,8 @@ outputs/milestone1_samples/*
 !outputs/milestone1_samples/*.png
 !outputs/milestone1_samples/*.json
 !outputs/milestone1_samples/.gitkeep
+# Milestone 2: only the subset that notebook 05 zips (logs, plots, grids, 10 baseline images)
+!outputs/milestone2/
 
 # Python / tooling
 __pycache__/

@@ -19,6 +19,11 @@ paths:
   outputs: outputs
   # Committed sample outputs, relative to the repo root
   milestone1_samples: outputs/milestone1_samples
+  # Milestone 2 artifacts, relative to the artifact root (Drive on Colab), so a
+  # disconnect never loses a run. Notebook 05 zips the commit-worthy subset.
+  milestone2_samples: outputs/milestone2/samples
+  milestone2_logs: outputs/milestone2/logs
+  bert_adapter_ckpt: checkpoints/bert_to_clip_adapter.pt
 
 data:
   base_url: http://images.cocodataset.org
@@ -69,15 +74,22 @@ bert_adapter:
   epochs: 15
   lr: 3.0e-4
   weight_decay: 1.0e-2
-  val_split: 0.1
+  val_split: 0.1          # fraction of *images* held out (all captions of an image share a side)
   mse_weight: 1.0
   cosine_weight: 0.5
+  # Images whose captions are generation prompts. They are kept out of training
+  # and validation, so BERT is never scored on its own training data.
+  exclude_image_ids: [508586, 201148]
 
 milestone2_sweeps:
+  sweep_prompts: [p1_coco_zebra, p2_coco_train, p3_single_object, p4_spatial, p5_style]
   guidance_scales: [1.0, 3.0, 5.0, 7.5, 10.0, 15.0]
   schedulers: [pndm, ddim, dpm, euler]
   steps_list: [10, 20, 30, 50]
+  steps_schedulers: [ddim, dpm]
+  # CLIP score model. ViT-B/32 is a different model from the L/14 encoder SD conditions on.
   eval_clip_model: openai/clip-vit-base-patch32
+  eval_clip_revision: 3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268
 
 # Milestone 1 prompts: 2 real COCO val captions, then 3 custom prompts of
 # increasing complexity (single object -> multi-object + spatial -> style).

@@ -116,8 +116,8 @@ def get_paths(cfg: dict) -> dict[str, Path]:
         "embeddings": root / p["embeddings"],
         "outputs": root / p["outputs"],
         "milestone1_samples": REPO_ROOT / p["milestone1_samples"],
-        "milestone2_samples": REPO_ROOT / p["milestone2_samples"],
-        "milestone2_logs": REPO_ROOT / p["milestone2_logs"],
+        "milestone2_samples": root / p["milestone2_samples"],
+        "milestone2_logs": root / p["milestone2_logs"],
         "bert_adapter_ckpt": root / p["bert_adapter_ckpt"],
     }
     for key, path in paths.items():
