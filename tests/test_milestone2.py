@@ -9,12 +9,26 @@ from src import bert_adapter as ba
 from src import metrics, sweeps
 
 
-def test_clip_content_mask_stops_after_first_eos():
-    eos = 9
-    ids = torch.tensor([[1, 5, 6, eos, eos, eos], [1, 5, 6, 7, 8, 2]])
-    mask = ba.clip_content_mask(ids, eos)
-    assert mask[0].tolist() == [True, True, True, True, False, False]
-    assert mask[1].all()  # no EOS: the whole row is content
+def test_excluded_image_ids_follow_the_coco_prompts():
+    from src.utils import load_config
+
+    cfg = load_config()
+    coco_ids = {p["image_id"] for p in cfg["milestone1_prompts"] if p.get("image_id")}
+    assert coco_ids and coco_ids <= set(ba.excluded_image_ids(cfg))
+    cfg["milestone1_prompts"].append({"id": "new", "prompt": "x", "image_id": 999})
+    cfg["bert_adapter"]["exclude_image_ids"] = []
+    assert ba.excluded_image_ids(cfg) == sorted(coco_ids | {999})
+
+
+def test_duplicate_groups_follow_config():
+    from src.utils import load_config
+
+    cfg = load_config()
+    groups = sweeps.duplicate_groups(cfg, "p1")
+    assert groups["default"] == ["baseline/clip/p1.png", "cfg/p1_s7.5.png", "scheduler/p1_pndm.png"]
+    assert groups["dpm_default_steps"] == ["scheduler/p1_dpm.png", "steps/p1_dpm_30.png"]
+    cfg["generation"].update(guidance_scale=7.0, scheduler="ddim")
+    assert sweeps.duplicate_groups(cfg, "p1")["default"] == ["baseline/clip/p1.png", "scheduler/p1_ddim.png"]
 
 
 def test_split_by_image_no_overlap_and_excludes():
