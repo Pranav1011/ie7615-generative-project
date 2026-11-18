@@ -10,6 +10,7 @@ regenerated. Delete the samples folder to regenerate everything from scratch.
 from __future__ import annotations
 
 import csv
+import hashlib
 from pathlib import Path
 
 import numpy as np
@@ -20,7 +21,7 @@ from .utils import load_json, make_image_grid, save_json
 
 LOG_FIELDS = [
     "sweep", "encoder", "prompt_id", "prompt_text", "scheduler", "steps", "guidance_scale", "seed",
-    "elapsed_sec", "peak_vram_gb", "nsfw_flagged", "resumed", "path",
+    "elapsed_sec", "peak_vram_gb", "nsfw_flagged", "resumed", "adapter_ckpt_sha256", "path",
 ]
 
 
@@ -42,18 +43,33 @@ def select_prompts(cfg: dict) -> list[dict]:
     return [by_id[i] for i in ids]
 
 
+def file_sha256(path: Path, chunk: int = 1 << 20) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while block := f.read(chunk):
+            h.update(block)
+    return h.hexdigest()
+
+
 def _run_one(pipe, root: Path, rel_dir: str, name: str, *, sweep: str, encoder: str, prompt: dict,
              seed: int, steps: int, guidance: float, height: int, width: int,
-             prompt_embeds=None, negative_prompt_embeds=None):
-    """Generate one image, or reuse it if its PNG and JSON already exist with identical settings."""
+             embeds_fn=None, identity: dict | None = None):
+    """Generate one image, or reuse it if its PNG and JSON exist with identical settings.
+
+    embeds_fn() -> (prompt_embeds, negative_prompt_embeds) is only called when
+    an image actually has to be generated. identity holds extra keys that must
+    match for reuse (for example the adapter checkpoint hash), and they are
+    stored in the sidecar.
+    """
     out_dir = root / rel_dir
     png, js = out_dir / f"{name}.png", out_dir / f"{name}.json"
     rel_path = f"{rel_dir}/{name}.png"
+    identity = identity or {}
     if png.exists() and js.exists():
         meta = load_json(js)
         wanted = {"seed": seed, "steps": steps, "guidance_scale": guidance, "height": height, "width": width,
                   "prompt_text": prompt["prompt"], "encoder": encoder,
-                  "scheduler": getattr(pipe, "_ie7615_scheduler", None)}
+                  "scheduler": getattr(pipe, "_ie7615_scheduler", None), **identity}
         stale = {k: (meta.get(k), v) for k, v in wanted.items() if meta.get(k) != v}
         if not stale:
             meta["resumed"] = True
@@ -61,11 +77,12 @@ def _run_one(pipe, root: Path, rel_dir: str, name: str, *, sweep: str, encoder: 
                 return im.convert("RGB"), meta
         print(f"[regenerate] {rel_path}: settings changed {stale}")
     extra = {"sweep": sweep, "encoder": encoder, "prompt_id": prompt["id"],
-             "prompt_text": prompt["prompt"], "path": rel_path, "resumed": False}
+             "prompt_text": prompt["prompt"], "path": rel_path, "resumed": False, **identity}
+    cond, uncond = embeds_fn() if embeds_fn else (None, None)
     img, meta = generate(
-        pipe, None if prompt_embeds is not None else prompt["prompt"], seed=seed, steps=steps,
+        pipe, None if cond is not None else prompt["prompt"], seed=seed, steps=steps,
         guidance_scale=guidance, out_dir=out_dir, name=name, height=height, width=width,
-        prompt_embeds=prompt_embeds, negative_prompt_embeds=negative_prompt_embeds, extra_meta=extra,
+        prompt_embeds=cond, negative_prompt_embeds=uncond, extra_meta=extra,
     )
     return img, meta
 
@@ -76,18 +93,39 @@ def _save_grid(images, captions, ncols, path: Path, cell: int = 192) -> Path:
     return path
 
 
-def reproducibility_check(root: Path, prompts: list[dict]) -> dict:
-    """The PNDM / 30-step / s=7.5 / CLIP image appears in three sweeps. Compare the copies pixel by pixel."""
+def duplicate_groups(cfg: dict, prompt_id: str) -> dict[str, list[str]]:
+    """Images that different sweeps generate with identical settings, as lists of relative paths.
+
+    'default': the default-scheduler / default-steps / default-guidance CLIP image
+    (baseline, cfg sweep, scheduler sweep). '<sch>_default_steps': the steps-sweep
+    image at the default step count vs. the scheduler-sweep image.
+    """
+    g, sw = cfg["generation"], cfg["milestone2_sweeps"]
+    groups = {"default": [f"baseline/clip/{prompt_id}.png"]}
+    if g["guidance_scale"] in sw["guidance_scales"]:
+        groups["default"].append(f"cfg/{prompt_id}_s{g['guidance_scale']}.png")
+    if g["scheduler"] in sw["schedulers"]:
+        groups["default"].append(f"scheduler/{prompt_id}_{g['scheduler']}.png")
+    if g["steps"] in sw["steps_list"]:
+        for sch in sw["steps_schedulers"]:
+            if sch in sw["schedulers"]:
+                groups[f"{sch}_default_steps"] = [f"scheduler/{prompt_id}_{sch}.png",
+                                                  f"steps/{prompt_id}_{sch}_{g['steps']}.png"]
+    return {k: v for k, v in groups.items() if len(v) > 1}
+
+
+def reproducibility_check(root: Path, cfg: dict, prompts: list[dict]) -> dict:
+    """Compare same-settings images from different sweeps pixel by pixel. Identical means fully deterministic."""
     out = {}
     for p in prompts:
-        files = [root / f"baseline/clip/{p['id']}.png", root / f"cfg/{p['id']}_s7.5.png",
-                 root / f"scheduler/{p['id']}_pndm.png"]
-        if not all(f.exists() for f in files):
-            out[p["id"]] = None
-            continue
-        arrs = [np.asarray(Image.open(f).convert("RGB"), dtype=np.int16) for f in files]
-        max_diff = max(int(np.abs(a - arrs[0]).max()) for a in arrs[1:])
-        out[p["id"]] = {"identical": max_diff == 0, "max_abs_pixel_diff": max_diff}
+        for group, rels in duplicate_groups(cfg, p["id"]).items():
+            files = [root / r for r in rels]
+            if not all(f.exists() for f in files):
+                out[f"{p['id']}/{group}"] = None
+                continue
+            arrs = [np.asarray(Image.open(f).convert("RGB"), dtype=np.int16) for f in files]
+            max_diff = max(int(np.abs(a - arrs[0]).max()) for a in arrs[1:])
+            out[f"{p['id']}/{group}"] = {"identical": max_diff == 0, "max_abs_pixel_diff": max_diff}
     return out
 
 
@@ -102,11 +140,22 @@ def run_milestone2_sweeps(pipe, cfg: dict, paths: dict[str, Path], bert_encoder=
     common = dict(seed=seed, height=g["height"], width=g["width"])
     rows: list[dict] = []
 
-    if bert_encoder is None:
-        from .bert_adapter import ProjectedBertTextEncoder
+    # The projected-BERT encoder is loaded only if a BERT image actually has to be generated.
+    # Reuse requires the same adapter checkpoint (by hash), so retraining in 04 regenerates these images.
+    ckpt = Path(paths["bert_adapter_ckpt"])
+    bert_identity = {"adapter_ckpt_sha256": file_sha256(ckpt) if ckpt.exists() else None}
+    lazy: dict = {"enc": bert_encoder}
 
-        bert_encoder = ProjectedBertTextEncoder(cfg, paths["bert_adapter_ckpt"])
-    uncond_bert = bert_encoder.encode_prompts([""])
+    def bert_embeds(text: str):
+        def fn():
+            if lazy["enc"] is None:
+                from .bert_adapter import ProjectedBertTextEncoder
+
+                lazy["enc"] = ProjectedBertTextEncoder(cfg, ckpt)
+            if "uncond" not in lazy:
+                lazy["uncond"] = lazy["enc"].encode_prompts([""])
+            return lazy["enc"].encode_prompts([text]), lazy["uncond"]
+        return fn
 
     # 1. Baseline: native CLIP vs. projected BERT, at the default settings
     set_scheduler(pipe, g["scheduler"])
@@ -118,8 +167,7 @@ def run_milestone2_sweeps(pipe, cfg: dict, paths: dict[str, Path], bert_encoder=
         rows.append(meta)
         img, meta = _run_one(pipe, root, "baseline/bert", p["id"], sweep="baseline", encoder="bert_projected",
                              prompt=p, steps=g["steps"], guidance=g["guidance_scale"],
-                             prompt_embeds=bert_encoder.encode_prompts([p["prompt"]]),
-                             negative_prompt_embeds=uncond_bert, **common)
+                             embeds_fn=bert_embeds(p["prompt"]), identity=bert_identity, **common)
         bert_imgs.append(img)
         rows.append(meta)
     _save_grid(clip_imgs + bert_imgs, [f"CLIP | {p['id']}" for p in prompts] + [f"BERT->CLIP | {p['id']}" for p in prompts],
@@ -162,7 +210,7 @@ def run_milestone2_sweeps(pipe, cfg: dict, paths: dict[str, Path], bert_encoder=
     _save_grid(imgs, caps, len(sw["steps_list"]), root / "grid_steps_sweep.jpg")
     set_scheduler(pipe, g["scheduler"])
 
-    repro = reproducibility_check(root, prompts)
+    repro = reproducibility_check(root, cfg, prompts)
     write_csv(rows, logs / "sweep_runs_log.csv", LOG_FIELDS)
     save_json({"total_runs": len(rows), "reproducibility_check": repro, "runs": rows},
               logs / "sweep_runs_log.json", add_env=True)
