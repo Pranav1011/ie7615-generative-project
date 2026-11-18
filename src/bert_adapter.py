@@ -9,7 +9,13 @@ Evaluation is kept honest in four ways:
 - The prompt images (cfg.bert_adapter.exclude_image_ids) are left out of training and validation.
 - Cosine is reported on content tokens (CLIP BOS ... EOS) as well as on all 77 positions.
   Padding positions are nearly identical across captions, so they inflate the all-token number.
-- Two baselines are reported: predicting the mean CLIP embedding, and a closed-form linear map.
+- Two baselines are reported:
+  - mean_clip_embedding predicts the per-position mean CLIP state. This is the meaningful bar, since it
+    captures everything a model can get without reading the caption.
+  - linear_per_position maps BERT position i to CLIP position i. It is a weak baseline, because the two
+    tokenizers split words differently and so content positions don't line up. It only shows how much
+    the adapter's attention-based realignment adds.
+- The best epoch is chosen by validation loss on content tokens, not on the padding-dominated all-token loss.
 """
 
 from __future__ import annotations
@@ -77,8 +83,9 @@ class ProjectedBertTextEncoder:
             device=self.device,
             max_length=cfg["embeddings"]["max_length"],
         )
-        self.adapter = _build_adapter(cfg["bert_adapter"]).to(self.device)
         state = torch.load(ckpt_path, map_location=self.device, weights_only=True)
+        # Build from the architecture stored in the checkpoint, not the current config.
+        self.adapter = _build_adapter(state.get("config") or cfg["bert_adapter"]).to(self.device)
         self.adapter.load_state_dict(state["model_state_dict"])
         self.adapter.eval()
 
@@ -92,16 +99,10 @@ class ProjectedBertTextEncoder:
 # ---------------------------------------------------------------- data
 
 
-def clip_content_mask(input_ids: torch.Tensor, eos_token_id: int) -> torch.Tensor:
-    """Bool [N, L]: True from BOS up to and including the first EOS, False on the padding after it.
-
-    The openai CLIP tokenizer pads with EOS, so the first EOS marks the end of the caption.
-    """
-    is_eos = input_ids == eos_token_id
-    first_eos = is_eos.int().argmax(1)
-    first_eos = torch.where(is_eos.any(1), first_eos, torch.full_like(first_eos, input_ids.shape[1] - 1))
-    positions = torch.arange(input_ids.shape[1], device=input_ids.device).unsqueeze(0)
-    return positions <= first_eos.unsqueeze(1)
+def excluded_image_ids(cfg: dict) -> list[int]:
+    """Images kept out of adapter training: every COCO prompt's image_id, plus any listed in the config."""
+    from_prompts = {p["image_id"] for p in cfg.get("milestone1_prompts", []) if p.get("image_id") is not None}
+    return sorted(from_prompts | set(cfg["bert_adapter"].get("exclude_image_ids", [])))
 
 
 @torch.no_grad()
@@ -120,7 +121,8 @@ def build_pairs(records: list[dict], clip_encoder, bert_encoder, batch_size: int
     mask = torch.zeros(n, clip_encoder.max_length, dtype=torch.bool)
     for start in tqdm(range(0, n, batch_size), desc="encode pairs"):
         chunk = texts[start : start + batch_size]
-        cy = clip_encoder.encode_batch(chunk)["last_hidden_state"]
+        clip_out = clip_encoder.encode_batch(chunk)
+        cy = clip_out["last_hidden_state"]
         cx = bert_encoder.encode_batch(chunk)["last_hidden_state"]
         if x is None:
             x = torch.empty(n, *cx.shape[1:], dtype=torch.float16)
@@ -128,8 +130,8 @@ def build_pairs(records: list[dict], clip_encoder, bert_encoder, batch_size: int
         end = start + len(chunk)
         x[start:end] = cx.half()
         y[start:end] = cy.half()
-        ids = clip_encoder._tokenize(chunk).input_ids
-        mask[start:end] = clip_content_mask(ids, clip_encoder.tokenizer.eos_token_id)
+        # CLIP's tokenizer attention mask is 1 from BOS through the caption's EOS and 0 on the padding.
+        mask[start:end] = clip_out["attention_mask"].bool()
     return {"x": x, "y": y, "mask": mask, "image_ids": torch.tensor([i for i, _ in index])}
 
 
@@ -254,7 +256,7 @@ def train_bert_adapter(cfg: dict, paths: dict[str, Path], records: list[dict] | 
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
-    excluded = acfg.get("exclude_image_ids", [])
+    excluded = excluded_image_ids(cfg)
     train_rows, val_rows = split_by_image(pairs["image_ids"], acfg["val_split"], cfg["seed"], excluded)
     print(f"pairs: {len(pairs['x'])} | train {len(train_rows)} | val {len(val_rows)} | "
           f"excluded images {excluded}")
@@ -264,7 +266,7 @@ def train_bert_adapter(cfg: dict, paths: dict[str, Path], records: list[dict] | 
     w, b = fit_linear_baseline(pairs, train_rows, bs, device)
     baselines = {
         "mean_clip_embedding": evaluate(lambda x: mean_y.expand(len(x), -1, -1), pairs, val_rows, bs, device),
-        "linear_map": evaluate(lambda x: x @ w + b, pairs, val_rows, bs, device),
+        "linear_per_position": evaluate(lambda x: x @ w + b, pairs, val_rows, bs, device),
     }
     print("baselines (val):", {k: {m: round(v, 4) for m, v in r.items()} for k, r in baselines.items()})
 
@@ -297,14 +299,15 @@ def train_bert_adapter(cfg: dict, paths: dict[str, Path], records: list[dict] | 
         model.eval()
         val = evaluate(model, pairs, val_rows, bs, device)
         train = _finalize(tr)
-        val_loss = acfg["mse_weight"] * val["mse_all"] + acfg["cosine_weight"] * (1.0 - val["cos_all"])
+        # Select on content tokens: all-token loss is dominated by padding that looks alike for every caption.
+        val_loss = acfg["mse_weight"] * val["mse_content"] + acfg["cosine_weight"] * (1.0 - val["cos_content"])
         row = {"epoch": epoch, "lr": round(lr, 8),
                **{f"train_{k}": round(v, 6) for k, v in train.items()},
                **{f"val_{k}": round(v, 6) for k, v in val.items()},
-               "val_loss": round(val_loss, 6)}
+               "val_loss_content": round(val_loss, 6)}
         history.append(row)
         print({k: row[k] for k in ("epoch", "train_mse_all", "val_mse_all", "val_cos_all", "val_cos_content")})
-        if best is None or val_loss < best["val_loss"]:
+        if best is None or val_loss < best["val_loss_content"]:
             best = row
             tmp = ckpt_path.with_name(ckpt_path.name + ".part")
             torch.save({"model_state_dict": model.state_dict(), "config": acfg, "metrics": row}, tmp)
