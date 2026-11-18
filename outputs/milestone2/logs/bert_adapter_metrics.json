@@ -1,0 +1,74 @@
+{
+  "best_epoch": {
+    "epoch": 15,
+    "lr": 3.28e-06,
+    "train_mse_all": 0.200914,
+    "train_cos_all": 0.892612,
+    "train_mse_content": 0.379331,
+    "train_cos_content": 0.780694,
+    "val_mse_all": 0.250659,
+    "val_cos_all": 0.864932,
+    "val_mse_content": 0.37547,
+    "val_cos_content": 0.781473,
+    "val_loss_content": 0.484734
+  },
+  "baselines_val": {
+    "mean_clip_embedding": {
+      "mse_all": 0.734866076801708,
+      "cos_all": 0.5207413120335712,
+      "mse_content": 0.7424589369728063,
+      "cos_content": 0.47864063826431064
+    },
+    "linear_per_position": {
+      "mse_all": 0.5235811249539329,
+      "cos_all": 0.6988030504472234,
+      "mse_content": 0.6821608214841688,
+      "cos_content": 0.5956522599836951
+    }
+  },
+  "n_pairs_total": 25012,
+  "n_train_pairs": 22500,
+  "n_val_pairs": 2502,
+  "n_train_images": 4498,
+  "n_val_images": 500,
+  "excluded_image_ids": [
+    201148,
+    508586
+  ],
+  "split": "by image_id, seeded",
+  "checkpoint": "/content/drive/MyDrive/ie7615-generative/checkpoints/bert_to_clip_adapter.pt",
+  "adapter_config": {
+    "hidden_dim": 768,
+    "num_layers": 2,
+    "dropout": 0.1,
+    "batch_size": 128,
+    "epochs": 15,
+    "lr": 0.0003,
+    "weight_decay": 0.01,
+    "val_split": 0.1,
+    "mse_weight": 1.0,
+    "cosine_weight": 0.5,
+    "exclude_image_ids": [
+      508586,
+      201148
+    ]
+  },
+  "timestamp_utc": "2026-11-18T16:13:49+00:00",
+  "environment": {
+    "python": "3.13.16",
+    "packages": {
+      "torch": "2.14.1+cu130",
+      "torchvision": "0.29.1+cu130",
+      "diffusers": "0.42.1",
+      "transformers": "5.22.1",
+      "accelerate": "1.15.0",
+      "safetensors": "0.8.0",
+      "pycocotools": "2.0.11",
+      "numpy": "2.4.6",
+      "pillow": "11.3.0"
+    },
+    "cuda_available": true,
+    "gpu": "Tesla T4",
+    "cuda": "13.0"
+  }
+}

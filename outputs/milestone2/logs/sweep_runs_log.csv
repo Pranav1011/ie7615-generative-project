@@ -1,0 +1,101 @@
+sweep,encoder,prompt_id,prompt_text,scheduler,steps,guidance_scale,seed,elapsed_sec,peak_vram_gb,nsfw_flagged,resumed,adapter_ckpt_sha256,path,clip_score,clip_score_model
+baseline,clip,p1_coco_zebra,Herd of zebra grazing on dried grasses in open field.,pndm,30,7.5,42,8.58,3.42,False,False,,baseline/clip/p1_coco_zebra.png,32.3893,openai/clip-vit-base-patch32
+baseline,bert_projected,p1_coco_zebra,Herd of zebra grazing on dried grasses in open field.,pndm,30,7.5,42,6.21,3.71,False,False,8b3e18f0dd71da58ec91bdfb4f94be0ed031ab4b5076a9b6353fa3d028df0144,baseline/bert/p1_coco_zebra.png,29.6467,openai/clip-vit-base-patch32
+baseline,clip,p2_coco_train,A train traveling down tracks next to a brick building.,pndm,30,7.5,42,6.16,3.71,False,False,,baseline/clip/p2_coco_train.png,27.9844,openai/clip-vit-base-patch32
+baseline,bert_projected,p2_coco_train,A train traveling down tracks next to a brick building.,pndm,30,7.5,42,6.2,3.71,False,False,8b3e18f0dd71da58ec91bdfb4f94be0ed031ab4b5076a9b6353fa3d028df0144,baseline/bert/p2_coco_train.png,28.92,openai/clip-vit-base-patch32
+baseline,clip,p3_single_object,a red apple on a white wooden table,pndm,30,7.5,42,6.25,3.71,False,False,,baseline/clip/p3_single_object.png,30.1782,openai/clip-vit-base-patch32
+baseline,bert_projected,p3_single_object,a red apple on a white wooden table,pndm,30,7.5,42,6.29,3.71,False,False,8b3e18f0dd71da58ec91bdfb4f94be0ed031ab4b5076a9b6353fa3d028df0144,baseline/bert/p3_single_object.png,36.3251,openai/clip-vit-base-patch32
+baseline,clip,p4_spatial,a cat sitting to the left of a dog on a park bench,pndm,30,7.5,42,6.35,3.71,False,False,,baseline/clip/p4_spatial.png,35.216,openai/clip-vit-base-patch32
+baseline,bert_projected,p4_spatial,a cat sitting to the left of a dog on a park bench,pndm,30,7.5,42,6.36,3.71,False,False,8b3e18f0dd71da58ec91bdfb4f94be0ed031ab4b5076a9b6353fa3d028df0144,baseline/bert/p4_spatial.png,29.4463,openai/clip-vit-base-patch32
+baseline,clip,p5_style,"a lighthouse on a rocky cliff at sunset, watercolor painting",pndm,30,7.5,42,6.44,3.71,False,False,,baseline/clip/p5_style.png,37.0415,openai/clip-vit-base-patch32
+baseline,bert_projected,p5_style,"a lighthouse on a rocky cliff at sunset, watercolor painting",pndm,30,7.5,42,6.49,3.71,False,False,8b3e18f0dd71da58ec91bdfb4f94be0ed031ab4b5076a9b6353fa3d028df0144,baseline/bert/p5_style.png,20.5793,openai/clip-vit-base-patch32
+cfg_scale,clip,p1_coco_zebra,Herd of zebra grazing on dried grasses in open field.,pndm,30,1.0,42,3.98,3.71,False,False,,cfg/p1_coco_zebra_s1.0.png,33.6701,openai/clip-vit-base-patch32
+cfg_scale,clip,p1_coco_zebra,Herd of zebra grazing on dried grasses in open field.,pndm,30,3.0,42,6.6,3.71,False,False,,cfg/p1_coco_zebra_s3.0.png,33.6033,openai/clip-vit-base-patch32
+cfg_scale,clip,p1_coco_zebra,Herd of zebra grazing on dried grasses in open field.,pndm,30,5.0,42,6.63,3.71,False,False,,cfg/p1_coco_zebra_s5.0.png,32.9139,openai/clip-vit-base-patch32
+cfg_scale,clip,p1_coco_zebra,Herd of zebra grazing on dried grasses in open field.,pndm,30,7.5,42,6.66,3.71,False,False,,cfg/p1_coco_zebra_s7.5.png,32.3893,openai/clip-vit-base-patch32
+cfg_scale,clip,p1_coco_zebra,Herd of zebra grazing on dried grasses in open field.,pndm,30,10.0,42,6.72,3.71,False,False,,cfg/p1_coco_zebra_s10.0.png,31.6009,openai/clip-vit-base-patch32
+cfg_scale,clip,p1_coco_zebra,Herd of zebra grazing on dried grasses in open field.,pndm,30,15.0,42,6.67,3.71,False,False,,cfg/p1_coco_zebra_s15.0.png,31.3859,openai/clip-vit-base-patch32
+cfg_scale,clip,p2_coco_train,A train traveling down tracks next to a brick building.,pndm,30,1.0,42,3.99,3.71,False,False,,cfg/p2_coco_train_s1.0.png,23.5862,openai/clip-vit-base-patch32
+cfg_scale,clip,p2_coco_train,A train traveling down tracks next to a brick building.,pndm,30,3.0,42,6.61,3.71,False,False,,cfg/p2_coco_train_s3.0.png,28.3697,openai/clip-vit-base-patch32
+cfg_scale,clip,p2_coco_train,A train traveling down tracks next to a brick building.,pndm,30,5.0,42,6.58,3.71,False,False,,cfg/p2_coco_train_s5.0.png,28.962,openai/clip-vit-base-patch32
+cfg_scale,clip,p2_coco_train,A train traveling down tracks next to a brick building.,pndm,30,7.5,42,6.54,3.71,False,False,,cfg/p2_coco_train_s7.5.png,27.9844,openai/clip-vit-base-patch32
+cfg_scale,clip,p2_coco_train,A train traveling down tracks next to a brick building.,pndm,30,10.0,42,6.55,3.71,False,False,,cfg/p2_coco_train_s10.0.png,27.8617,openai/clip-vit-base-patch32
+cfg_scale,clip,p2_coco_train,A train traveling down tracks next to a brick building.,pndm,30,15.0,42,6.51,3.71,False,False,,cfg/p2_coco_train_s15.0.png,25.7454,openai/clip-vit-base-patch32
+cfg_scale,clip,p3_single_object,a red apple on a white wooden table,pndm,30,1.0,42,3.95,3.71,False,False,,cfg/p3_single_object_s1.0.png,31.6056,openai/clip-vit-base-patch32
+cfg_scale,clip,p3_single_object,a red apple on a white wooden table,pndm,30,3.0,42,6.56,3.71,False,False,,cfg/p3_single_object_s3.0.png,30.6334,openai/clip-vit-base-patch32
+cfg_scale,clip,p3_single_object,a red apple on a white wooden table,pndm,30,5.0,42,6.58,3.71,False,False,,cfg/p3_single_object_s5.0.png,30.922,openai/clip-vit-base-patch32
+cfg_scale,clip,p3_single_object,a red apple on a white wooden table,pndm,30,7.5,42,6.61,3.71,False,False,,cfg/p3_single_object_s7.5.png,30.1782,openai/clip-vit-base-patch32
+cfg_scale,clip,p3_single_object,a red apple on a white wooden table,pndm,30,10.0,42,6.6,3.71,False,False,,cfg/p3_single_object_s10.0.png,32.1052,openai/clip-vit-base-patch32
+cfg_scale,clip,p3_single_object,a red apple on a white wooden table,pndm,30,15.0,42,6.6,3.71,False,False,,cfg/p3_single_object_s15.0.png,32.0049,openai/clip-vit-base-patch32
+cfg_scale,clip,p4_spatial,a cat sitting to the left of a dog on a park bench,pndm,30,1.0,42,3.98,3.71,False,False,,cfg/p4_spatial_s1.0.png,34.0932,openai/clip-vit-base-patch32
+cfg_scale,clip,p4_spatial,a cat sitting to the left of a dog on a park bench,pndm,30,3.0,42,6.61,3.71,False,False,,cfg/p4_spatial_s3.0.png,33.4017,openai/clip-vit-base-patch32
+cfg_scale,clip,p4_spatial,a cat sitting to the left of a dog on a park bench,pndm,30,5.0,42,6.61,3.71,False,False,,cfg/p4_spatial_s5.0.png,33.8136,openai/clip-vit-base-patch32
+cfg_scale,clip,p4_spatial,a cat sitting to the left of a dog on a park bench,pndm,30,7.5,42,6.59,3.71,False,False,,cfg/p4_spatial_s7.5.png,35.216,openai/clip-vit-base-patch32
+cfg_scale,clip,p4_spatial,a cat sitting to the left of a dog on a park bench,pndm,30,10.0,42,6.59,3.71,False,False,,cfg/p4_spatial_s10.0.png,35.5085,openai/clip-vit-base-patch32
+cfg_scale,clip,p4_spatial,a cat sitting to the left of a dog on a park bench,pndm,30,15.0,42,6.57,3.71,False,False,,cfg/p4_spatial_s15.0.png,35.195,openai/clip-vit-base-patch32
+cfg_scale,clip,p5_style,"a lighthouse on a rocky cliff at sunset, watercolor painting",pndm,30,1.0,42,3.99,3.71,False,False,,cfg/p5_style_s1.0.png,33.8923,openai/clip-vit-base-patch32
+cfg_scale,clip,p5_style,"a lighthouse on a rocky cliff at sunset, watercolor painting",pndm,30,3.0,42,6.56,3.71,False,False,,cfg/p5_style_s3.0.png,34.8567,openai/clip-vit-base-patch32
+cfg_scale,clip,p5_style,"a lighthouse on a rocky cliff at sunset, watercolor painting",pndm,30,5.0,42,6.59,3.71,False,False,,cfg/p5_style_s5.0.png,35.3357,openai/clip-vit-base-patch32
+cfg_scale,clip,p5_style,"a lighthouse on a rocky cliff at sunset, watercolor painting",pndm,30,7.5,42,6.59,3.71,False,False,,cfg/p5_style_s7.5.png,37.0415,openai/clip-vit-base-patch32
+cfg_scale,clip,p5_style,"a lighthouse on a rocky cliff at sunset, watercolor painting",pndm,30,10.0,42,6.58,3.71,False,False,,cfg/p5_style_s10.0.png,35.8721,openai/clip-vit-base-patch32
+cfg_scale,clip,p5_style,"a lighthouse on a rocky cliff at sunset, watercolor painting",pndm,30,15.0,42,6.59,3.71,False,False,,cfg/p5_style_s15.0.png,36.1547,openai/clip-vit-base-patch32
+scheduler,clip,p1_coco_zebra,Herd of zebra grazing on dried grasses in open field.,pndm,30,7.5,42,6.6,3.71,False,False,,scheduler/p1_coco_zebra_pndm.png,32.3893,openai/clip-vit-base-patch32
+scheduler,clip,p1_coco_zebra,Herd of zebra grazing on dried grasses in open field.,ddim,30,7.5,42,6.42,3.71,False,False,,scheduler/p1_coco_zebra_ddim.png,33.6188,openai/clip-vit-base-patch32
+scheduler,clip,p1_coco_zebra,Herd of zebra grazing on dried grasses in open field.,dpm,30,7.5,42,6.41,3.71,False,False,,scheduler/p1_coco_zebra_dpm.png,32.1552,openai/clip-vit-base-patch32
+scheduler,clip,p1_coco_zebra,Herd of zebra grazing on dried grasses in open field.,euler,30,7.5,42,6.39,3.71,False,False,,scheduler/p1_coco_zebra_euler.png,32.8834,openai/clip-vit-base-patch32
+scheduler,clip,p2_coco_train,A train traveling down tracks next to a brick building.,pndm,30,7.5,42,6.62,3.71,False,False,,scheduler/p2_coco_train_pndm.png,27.9844,openai/clip-vit-base-patch32
+scheduler,clip,p2_coco_train,A train traveling down tracks next to a brick building.,ddim,30,7.5,42,6.4,3.71,False,False,,scheduler/p2_coco_train_ddim.png,28.3501,openai/clip-vit-base-patch32
+scheduler,clip,p2_coco_train,A train traveling down tracks next to a brick building.,dpm,30,7.5,42,6.38,3.71,False,False,,scheduler/p2_coco_train_dpm.png,30.884,openai/clip-vit-base-patch32
+scheduler,clip,p2_coco_train,A train traveling down tracks next to a brick building.,euler,30,7.5,42,6.37,3.71,False,False,,scheduler/p2_coco_train_euler.png,30.3697,openai/clip-vit-base-patch32
+scheduler,clip,p3_single_object,a red apple on a white wooden table,pndm,30,7.5,42,6.6,3.71,False,False,,scheduler/p3_single_object_pndm.png,30.1782,openai/clip-vit-base-patch32
+scheduler,clip,p3_single_object,a red apple on a white wooden table,ddim,30,7.5,42,6.38,3.71,False,False,,scheduler/p3_single_object_ddim.png,30.644,openai/clip-vit-base-patch32
+scheduler,clip,p3_single_object,a red apple on a white wooden table,dpm,30,7.5,42,6.36,3.71,False,False,,scheduler/p3_single_object_dpm.png,31.9966,openai/clip-vit-base-patch32
+scheduler,clip,p3_single_object,a red apple on a white wooden table,euler,30,7.5,42,6.38,3.71,False,False,,scheduler/p3_single_object_euler.png,31.1823,openai/clip-vit-base-patch32
+scheduler,clip,p4_spatial,a cat sitting to the left of a dog on a park bench,pndm,30,7.5,42,6.58,3.71,False,False,,scheduler/p4_spatial_pndm.png,35.216,openai/clip-vit-base-patch32
+scheduler,clip,p4_spatial,a cat sitting to the left of a dog on a park bench,ddim,30,7.5,42,6.39,3.71,False,False,,scheduler/p4_spatial_ddim.png,35.6568,openai/clip-vit-base-patch32
+scheduler,clip,p4_spatial,a cat sitting to the left of a dog on a park bench,dpm,30,7.5,42,6.36,3.71,False,False,,scheduler/p4_spatial_dpm.png,34.1455,openai/clip-vit-base-patch32
+scheduler,clip,p4_spatial,a cat sitting to the left of a dog on a park bench,euler,30,7.5,42,6.39,3.71,False,False,,scheduler/p4_spatial_euler.png,34.1438,openai/clip-vit-base-patch32
+scheduler,clip,p5_style,"a lighthouse on a rocky cliff at sunset, watercolor painting",pndm,30,7.5,42,6.61,3.71,False,False,,scheduler/p5_style_pndm.png,37.0415,openai/clip-vit-base-patch32
+scheduler,clip,p5_style,"a lighthouse on a rocky cliff at sunset, watercolor painting",ddim,30,7.5,42,6.4,3.71,False,False,,scheduler/p5_style_ddim.png,35.3231,openai/clip-vit-base-patch32
+scheduler,clip,p5_style,"a lighthouse on a rocky cliff at sunset, watercolor painting",dpm,30,7.5,42,6.38,3.71,False,False,,scheduler/p5_style_dpm.png,35.249,openai/clip-vit-base-patch32
+scheduler,clip,p5_style,"a lighthouse on a rocky cliff at sunset, watercolor painting",euler,30,7.5,42,6.38,3.71,False,False,,scheduler/p5_style_euler.png,35.5808,openai/clip-vit-base-patch32
+steps,clip,p1_coco_zebra,Herd of zebra grazing on dried grasses in open field.,ddim,10,7.5,42,2.3,3.71,False,False,,steps/p1_coco_zebra_ddim_10.png,33.02,openai/clip-vit-base-patch32
+steps,clip,p1_coco_zebra,Herd of zebra grazing on dried grasses in open field.,ddim,20,7.5,42,4.37,3.71,False,False,,steps/p1_coco_zebra_ddim_20.png,33.2075,openai/clip-vit-base-patch32
+steps,clip,p1_coco_zebra,Herd of zebra grazing on dried grasses in open field.,ddim,30,7.5,42,6.39,3.71,False,False,,steps/p1_coco_zebra_ddim_30.png,33.6188,openai/clip-vit-base-patch32
+steps,clip,p1_coco_zebra,Herd of zebra grazing on dried grasses in open field.,ddim,50,7.5,42,10.5,3.71,False,False,,steps/p1_coco_zebra_ddim_50.png,32.3188,openai/clip-vit-base-patch32
+steps,clip,p2_coco_train,A train traveling down tracks next to a brick building.,ddim,10,7.5,42,2.29,3.71,False,False,,steps/p2_coco_train_ddim_10.png,30.0895,openai/clip-vit-base-patch32
+steps,clip,p2_coco_train,A train traveling down tracks next to a brick building.,ddim,20,7.5,42,4.34,3.71,False,False,,steps/p2_coco_train_ddim_20.png,29.4422,openai/clip-vit-base-patch32
+steps,clip,p2_coco_train,A train traveling down tracks next to a brick building.,ddim,30,7.5,42,6.4,3.71,False,False,,steps/p2_coco_train_ddim_30.png,28.3501,openai/clip-vit-base-patch32
+steps,clip,p2_coco_train,A train traveling down tracks next to a brick building.,ddim,50,7.5,42,10.48,3.71,False,False,,steps/p2_coco_train_ddim_50.png,27.2732,openai/clip-vit-base-patch32
+steps,clip,p3_single_object,a red apple on a white wooden table,ddim,10,7.5,42,2.28,3.71,False,False,,steps/p3_single_object_ddim_10.png,35.1941,openai/clip-vit-base-patch32
+steps,clip,p3_single_object,a red apple on a white wooden table,ddim,20,7.5,42,4.34,3.71,False,False,,steps/p3_single_object_ddim_20.png,30.418,openai/clip-vit-base-patch32
+steps,clip,p3_single_object,a red apple on a white wooden table,ddim,30,7.5,42,6.38,3.71,False,False,,steps/p3_single_object_ddim_30.png,30.644,openai/clip-vit-base-patch32
+steps,clip,p3_single_object,a red apple on a white wooden table,ddim,50,7.5,42,10.5,3.71,False,False,,steps/p3_single_object_ddim_50.png,30.9776,openai/clip-vit-base-patch32
+steps,clip,p4_spatial,a cat sitting to the left of a dog on a park bench,ddim,10,7.5,42,2.3,3.71,False,False,,steps/p4_spatial_ddim_10.png,33.2406,openai/clip-vit-base-patch32
+steps,clip,p4_spatial,a cat sitting to the left of a dog on a park bench,ddim,20,7.5,42,4.33,3.71,False,False,,steps/p4_spatial_ddim_20.png,33.2376,openai/clip-vit-base-patch32
+steps,clip,p4_spatial,a cat sitting to the left of a dog on a park bench,ddim,30,7.5,42,6.39,3.71,False,False,,steps/p4_spatial_ddim_30.png,35.6568,openai/clip-vit-base-patch32
+steps,clip,p4_spatial,a cat sitting to the left of a dog on a park bench,ddim,50,7.5,42,10.47,3.71,False,False,,steps/p4_spatial_ddim_50.png,34.8588,openai/clip-vit-base-patch32
+steps,clip,p5_style,"a lighthouse on a rocky cliff at sunset, watercolor painting",ddim,10,7.5,42,2.28,3.71,False,False,,steps/p5_style_ddim_10.png,33.6987,openai/clip-vit-base-patch32
+steps,clip,p5_style,"a lighthouse on a rocky cliff at sunset, watercolor painting",ddim,20,7.5,42,4.34,3.71,False,False,,steps/p5_style_ddim_20.png,35.1445,openai/clip-vit-base-patch32
+steps,clip,p5_style,"a lighthouse on a rocky cliff at sunset, watercolor painting",ddim,30,7.5,42,6.38,3.71,False,False,,steps/p5_style_ddim_30.png,35.3231,openai/clip-vit-base-patch32
+steps,clip,p5_style,"a lighthouse on a rocky cliff at sunset, watercolor painting",ddim,50,7.5,42,10.48,3.71,False,False,,steps/p5_style_ddim_50.png,36.4255,openai/clip-vit-base-patch32
+steps,clip,p1_coco_zebra,Herd of zebra grazing on dried grasses in open field.,dpm,10,7.5,42,2.27,3.71,False,False,,steps/p1_coco_zebra_dpm_10.png,32.5472,openai/clip-vit-base-patch32
+steps,clip,p1_coco_zebra,Herd of zebra grazing on dried grasses in open field.,dpm,20,7.5,42,4.32,3.71,False,False,,steps/p1_coco_zebra_dpm_20.png,32.4654,openai/clip-vit-base-patch32
+steps,clip,p1_coco_zebra,Herd of zebra grazing on dried grasses in open field.,dpm,30,7.5,42,6.37,3.71,False,False,,steps/p1_coco_zebra_dpm_30.png,32.1552,openai/clip-vit-base-patch32
+steps,clip,p1_coco_zebra,Herd of zebra grazing on dried grasses in open field.,dpm,50,7.5,42,10.47,3.71,False,False,,steps/p1_coco_zebra_dpm_50.png,32.1268,openai/clip-vit-base-patch32
+steps,clip,p2_coco_train,A train traveling down tracks next to a brick building.,dpm,10,7.5,42,2.29,3.71,False,False,,steps/p2_coco_train_dpm_10.png,30.4926,openai/clip-vit-base-patch32
+steps,clip,p2_coco_train,A train traveling down tracks next to a brick building.,dpm,20,7.5,42,4.32,3.71,False,False,,steps/p2_coco_train_dpm_20.png,29.8187,openai/clip-vit-base-patch32
+steps,clip,p2_coco_train,A train traveling down tracks next to a brick building.,dpm,30,7.5,42,6.38,3.71,False,False,,steps/p2_coco_train_dpm_30.png,30.884,openai/clip-vit-base-patch32
+steps,clip,p2_coco_train,A train traveling down tracks next to a brick building.,dpm,50,7.5,42,10.47,3.71,False,False,,steps/p2_coco_train_dpm_50.png,32.8463,openai/clip-vit-base-patch32
+steps,clip,p3_single_object,a red apple on a white wooden table,dpm,10,7.5,42,2.29,3.71,False,False,,steps/p3_single_object_dpm_10.png,32.1401,openai/clip-vit-base-patch32
+steps,clip,p3_single_object,a red apple on a white wooden table,dpm,20,7.5,42,4.33,3.71,False,False,,steps/p3_single_object_dpm_20.png,31.3425,openai/clip-vit-base-patch32
+steps,clip,p3_single_object,a red apple on a white wooden table,dpm,30,7.5,42,6.37,3.71,False,False,,steps/p3_single_object_dpm_30.png,31.9966,openai/clip-vit-base-patch32
+steps,clip,p3_single_object,a red apple on a white wooden table,dpm,50,7.5,42,10.44,3.71,False,False,,steps/p3_single_object_dpm_50.png,31.2284,openai/clip-vit-base-patch32
+steps,clip,p4_spatial,a cat sitting to the left of a dog on a park bench,dpm,10,7.5,42,2.28,3.71,False,False,,steps/p4_spatial_dpm_10.png,35.0838,openai/clip-vit-base-patch32
+steps,clip,p4_spatial,a cat sitting to the left of a dog on a park bench,dpm,20,7.5,42,4.35,3.71,False,False,,steps/p4_spatial_dpm_20.png,35.0392,openai/clip-vit-base-patch32
+steps,clip,p4_spatial,a cat sitting to the left of a dog on a park bench,dpm,30,7.5,42,6.37,3.71,False,False,,steps/p4_spatial_dpm_30.png,34.1455,openai/clip-vit-base-patch32
+steps,clip,p4_spatial,a cat sitting to the left of a dog on a park bench,dpm,50,7.5,42,10.48,3.71,False,False,,steps/p4_spatial_dpm_50.png,34.094,openai/clip-vit-base-patch32
+steps,clip,p5_style,"a lighthouse on a rocky cliff at sunset, watercolor painting",dpm,10,7.5,42,2.3,3.71,False,False,,steps/p5_style_dpm_10.png,34.9707,openai/clip-vit-base-patch32
+steps,clip,p5_style,"a lighthouse on a rocky cliff at sunset, watercolor painting",dpm,20,7.5,42,4.32,3.71,False,False,,steps/p5_style_dpm_20.png,34.8184,openai/clip-vit-base-patch32
+steps,clip,p5_style,"a lighthouse on a rocky cliff at sunset, watercolor painting",dpm,30,7.5,42,6.38,3.71,False,False,,steps/p5_style_dpm_30.png,35.2546,openai/clip-vit-base-patch32
+steps,clip,p5_style,"a lighthouse on a rocky cliff at sunset, watercolor painting",dpm,50,7.5,42,10.46,3.71,False,False,,steps/p5_style_dpm_50.png,36.0314,openai/clip-vit-base-patch32

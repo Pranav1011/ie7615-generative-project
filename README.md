@@ -4,6 +4,7 @@ IE 7615 Deep Learning for AI group project. We condition **Stable Diffusion v1.5
 
 - **Proposal:** [`docs/proposal.md`](docs/proposal.md)
 - **Milestone 1 samples:** [`outputs/milestone1_samples/`](outputs/milestone1_samples/)
+- **Milestone 2 results:** [`outputs/milestone2/`](outputs/milestone2/) (training log, sweep logs, grids, baseline samples), summarized [below](#milestone-2-model-integration-and-baseline-results)
 
 ## Repo layout
 ```
@@ -101,6 +102,68 @@ These come from one run with seed 42: a Colab T4, Python 3.13.16, torch 2.11.0+c
 | p5 lighthouse | The watercolor style was applied well. |
 
 The failures in p2–p4 are the known compositional limits of SD 1.5's CLIP conditioning. Later milestones will measure them with guidance-scale sweeps and CLIP score.
+
+## Milestone 2: model integration and baseline results
+Notebook 04 trains the BERT → CLIP adapter. Notebook 05 runs 100 seeded generations (the same 5 prompts, seed 42) across four sweeps and scores every image with CLIP score. All files are in [`outputs/milestone2/`](outputs/milestone2/). One run on 2026-11-18: a Colab T4, Python 3.13.16, torch 2.14.1+cu130, diffusers 0.42.1, transformers 5.22.1, 3.71 GB peak VRAM. No image was flagged by the safety checker.
+
+### BERT → CLIP adapter
+SD 1.5's U-Net cross-attends to CLIP ViT-L/14 hidden states (`[77, 768]`). BERT-base has the same shape but a different embedding space and tokenizer, so we train an adapter that maps BERT's last hidden state into CLIP space. The architecture is Linear → LayerNorm → GELU, then 2 pre-norm Transformer encoder layers (8 heads, feed-forward 3072, dropout 0.1), then Linear. The loss is `MSE + 0.5 · (1 − cosine)`, trained for 15 epochs with AdamW (lr 3e-4, weight decay 0.01, cosine decay) and batch size 128.
+
+- **Data:** 25,012 caption pairs from COCO 2017 val. The split is by image (seeded), so all captions of an image fall on one side: 22,500 training pairs from 4,498 images and 2,502 validation pairs from 500 images.
+- **No leakage:** the two images whose captions are generation prompts (508586, 201148) are excluded from both sides.
+- **Epoch selection:** by validation loss on content tokens (CLIP BOS through EOS). Padding positions look alike for every caption and would dominate an all-token metric.
+
+| Method (validation) | MSE, content | Cosine, content | MSE, all 77 | Cosine, all 77 |
+|---|---|---|---|---|
+| Mean CLIP embedding (per position) | 0.7425 | 0.4786 | 0.7349 | 0.5207 |
+| Linear map per position | 0.6822 | 0.5957 | 0.5236 | 0.6988 |
+| **Adapter (epoch 15)** | **0.3755** | **0.7815** | **0.2507** | **0.8649** |
+
+Validation loss fell every epoch, from 0.7421 at epoch 1 to 0.4847 at epoch 15, the best epoch. Train and validation content cosine stay close (0.7807 vs 0.7815), so the adapter is not overfitting. Log and curve: [`bert_training_log.csv`](outputs/milestone2/logs/bert_training_log.csv), [`bert_training_curve.png`](outputs/milestone2/logs/bert_training_curve.png).
+
+### Sweeps
+Each setting is scored over the 5 prompts with **CLIP score** = 100 · max(cos(image, text), 0), using **CLIP ViT-B/32**. That's a different checkpoint from the ViT-L/14 encoder SD conditions on, so the generator isn't scored by its own text encoder. The table shows the mean ± standard deviation over the 5 prompts, plus mean seconds per image.
+
+| Sweep | Setting | CLIP score | s / image |
+|---|---|---|---|
+| Encoder (PNDM, 30 steps, s = 7.5) | CLIP (native) | 32.56 ± 3.67 | 6.76 |
+| | BERT → adapter | 28.98 ± 5.59 | 6.31 |
+| Guidance scale s (CLIP, PNDM, 30 steps) | 1.0 | 31.37 ± 4.46 | 3.98 |
+| | 3.0 | 32.17 ± 2.63 | 6.59 |
+| | 5.0 | 32.39 ± 2.49 | 6.60 |
+| | 7.5 | 32.56 ± 3.67 | 6.60 |
+| | 10.0 | 32.59 ± 3.27 | 6.61 |
+| | 15.0 | 32.10 ± 4.09 | 6.59 |
+| Scheduler (CLIP, 30 steps, s = 7.5) | PNDM | 32.56 ± 3.67 | 6.60 |
+| | DDIM | 32.72 ± 3.15 | 6.40 |
+| | DPM-Solver++ | 32.89 ± 1.77 | 6.38 |
+| | Euler | 32.83 ± 2.13 | 6.38 |
+| Steps, DDIM (CLIP, s = 7.5) | 10 / 20 / 30 / 50 | 33.05 / 32.29 / 32.72 / 32.37 | 2.29 / 4.34 / 6.39 / 10.49 |
+| Steps, DPM-Solver++ (CLIP, s = 7.5) | 10 / 20 / 30 / 50 | 33.05 / 32.70 / 32.89 / 33.27 | 2.29 / 4.33 / 6.37 / 10.46 |
+
+Guidance 1.0 runs one U-Net pass per step instead of two, which is why it's faster. Grids: [`grid_clip_vs_bert.jpg`](outputs/milestone2/samples/grid_clip_vs_bert.jpg), [`grid_cfg_sweep.jpg`](outputs/milestone2/samples/grid_cfg_sweep.jpg), [`grid_scheduler_sweep.jpg`](outputs/milestone2/samples/grid_scheduler_sweep.jpg), [`grid_steps_sweep.jpg`](outputs/milestone2/samples/grid_steps_sweep.jpg). Every run is in [`sweep_runs_log.csv`](outputs/milestone2/logs/sweep_runs_log.csv).
+
+**CLIP vs BERT, per prompt**
+
+| Prompt | CLIP | BERT → adapter | Difference |
+|---|---|---|---|
+| p1 zebra | 32.39 | 29.65 | +2.74 |
+| p2 train | 27.98 | 28.92 | −0.94 |
+| p3 apple | 30.18 | 36.33 | −6.15 |
+| p4 cat + dog | 35.22 | 29.45 | +5.77 |
+| p5 lighthouse | 37.04 | 20.58 | +16.46 |
+
+### Observations
+- **The adapter learns the mapping, but not closely enough for SD.** It clearly beats both baselines (content cosine 0.78 vs 0.60). Yet every BERT-conditioned image shows heavy artifacts: oversaturated colour, noise-like texture, smeared shapes. The U-Net was trained on exact CLIP states, so a 0.78-cosine approximation is still off-distribution for it.
+- **CLIP score misses image quality.** CLIP wins on mean score by 3.6 points, but the per-prompt gap ranges from −6.2 to +16.5, and BERT wins on two prompts. On p3, BERT scores 36.33 against CLIP's 30.18 with an image that looks like a tomato on a plate. CLIP score measures text–image alignment, not fidelity, which is why Milestone 3 adds FID and IS.
+- **Guidance:** s = 1.0 is the only clearly worse setting (31.37), and its images are washed out and nearly grey. From 3 to 15, the means lie within 0.5 of each other, well inside the spread across prompts. Visually, s = 7.5–10 looks best. At s = 15, colours oversaturate (purple-tinted zebras, a cartoon-coloured train, a blown-out sun).
+- **Schedulers:** all four score within 0.33 of each other. DPM-Solver++ has the smallest spread across prompts (± 1.77).
+- **Steps:** CLIP score doesn't rise with steps, while time grows linearly (2.3 s at 10 steps vs 10.5 s at 50). DPM-Solver++ keeps the same composition from 10 to 50 steps. DDIM's composition shifts: p4 goes from one cat at 10–30 steps to two cats at 50, and at 10 steps p3 puts the apple on a plate.
+- **Compositional failures persist under every setting.** p4 never shows a dog: it's one cat at s = 3–5 and two cats at s ≥ 7.5. p2's brick building is mostly missing, though it appears at DPM-Solver++ 30 and 50 steps. These are limits of SD 1.5's conditioning, not of sampling.
+- **Reproducibility:** settings that recur across sweeps were generated independently and compared pixel by pixel. There are 15 groups: for each of the 5 prompts, the default image from the baseline, guidance and scheduler sweeps, plus DDIM and DPM-Solver++ at 30 steps from the scheduler and step sweeps. All 15 were identical (max absolute pixel difference 0).
+
+### Limits and next steps (Milestone 3)
+These results use 5 prompts and one seed, so the differences inside the guidance, scheduler and step sweeps are not statistically meaningful. Only the adapter-vs-baseline gap and the visual failure modes are firm findings. Milestone 3 adds FID and Inception Score on a larger set of COCO captions, several seeds per prompt, and a closer look at the adapter's off-distribution artifacts.
 
 ## Local development (optional, CPU only)
 ```bash

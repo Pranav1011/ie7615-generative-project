@@ -1,0 +1,4 @@
+method,mse_all,cos_all,mse_content,cos_content
+mean_clip_embedding,0.7349,0.5207,0.7425,0.4786
+linear_per_position,0.5236,0.6988,0.6822,0.5957
+adapter (epoch 15),0.2507,0.8649,0.3755,0.7815
