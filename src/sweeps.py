@@ -2,7 +2,9 @@
 
 Every image is written to Drive next to its JSON sidecar. A rerun skips any
 image whose PNG and JSON already exist, so a Colab disconnect only costs the
-image that was in progress. Delete the samples folder to regenerate from scratch.
+image that was in progress. A reused image must match the requested seed,
+steps, guidance, size, scheduler, encoder and prompt. Otherwise it is
+regenerated. Delete the samples folder to regenerate everything from scratch.
 """
 
 from __future__ import annotations
@@ -43,15 +45,21 @@ def select_prompts(cfg: dict) -> list[dict]:
 def _run_one(pipe, root: Path, rel_dir: str, name: str, *, sweep: str, encoder: str, prompt: dict,
              seed: int, steps: int, guidance: float, height: int, width: int,
              prompt_embeds=None, negative_prompt_embeds=None):
-    """Generate one image, or reuse it if its PNG and JSON already exist."""
+    """Generate one image, or reuse it if its PNG and JSON already exist with identical settings."""
     out_dir = root / rel_dir
     png, js = out_dir / f"{name}.png", out_dir / f"{name}.json"
     rel_path = f"{rel_dir}/{name}.png"
     if png.exists() and js.exists():
         meta = load_json(js)
-        meta["resumed"] = True
-        with Image.open(png) as im:
-            return im.convert("RGB"), meta
+        wanted = {"seed": seed, "steps": steps, "guidance_scale": guidance, "height": height, "width": width,
+                  "prompt_text": prompt["prompt"], "encoder": encoder,
+                  "scheduler": getattr(pipe, "_ie7615_scheduler", None)}
+        stale = {k: (meta.get(k), v) for k, v in wanted.items() if meta.get(k) != v}
+        if not stale:
+            meta["resumed"] = True
+            with Image.open(png) as im:
+                return im.convert("RGB"), meta
+        print(f"[regenerate] {rel_path}: settings changed {stale}")
     extra = {"sweep": sweep, "encoder": encoder, "prompt_id": prompt["id"],
              "prompt_text": prompt["prompt"], "path": rel_path, "resumed": False}
     img, meta = generate(
