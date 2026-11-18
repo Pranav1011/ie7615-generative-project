@@ -14,11 +14,16 @@ src/
   preprocess.py              resize + center-crop to 512, [-1, 1] tensors, JPEG cache, Dataset
   embeddings.py              CLIP + BERT batch encoders, cosine similarity, save to .pt
   generate.py                SD 1.5 pipeline (fp16, attention slicing), seeded generate() + JSON sidecar
+  bert_adapter.py            BERT -> CLIP-L token projection: training, split by image, baselines
+  sweeps.py                  Milestone 2 sweeps (CLIP vs BERT, guidance, scheduler, steps), resumable
+  metrics.py                 CLIP score (ViT-B/32) and per-setting summaries
 notebooks/
   00_colab_setup.ipynb       mount Drive, clone repo, install, GPU + version check
   01_data_prep.ipynb         download, clean, EDA, manifest + 512px cache to Drive
   02_text_embeddings.ipynb   CLIP/BERT embeddings, similarity checks, save to Drive
   03_baseline_generation.ipynb  5 prompts -> images, grid, prompts.json
+  04_bert_projection_training.ipynb  train the BERT -> CLIP adapter, compare it to baselines
+  05_milestone2_sweeps.ipynb  100 seeded generations + CLIP score, plots, results zip
 docs/proposal.md             1-page Milestone 1 proposal
 outputs/milestone1_samples/  committed Milestone 1 images + logs (small files only)
 tests/                       fast CPU tests (no model downloads)
@@ -28,7 +33,8 @@ tests/                       fast CPU tests (no model downloads)
 1. In Colab, go to **File → Open notebook → GitHub**, paste this repo's URL and open `notebooks/00_colab_setup.ipynb`.
 2. Under **Runtime → Change runtime type**, choose **GPU** (a T4 is enough).
 3. Run all cells. The first cell of every notebook mounts Drive, clones or pulls the repo to `/content/ie7615-generative-project` and installs `requirements.txt`, so each notebook also runs standalone.
-4. Run the notebooks in order: **00 → 01 → 02 → 03**. Every step skips work whose output already exists, so it's safe to rerun cells or restart the runtime.
+4. Run the notebooks in order: **00 → 01 → 02 → 03** for Milestone 1, then **04 → 05** for Milestone 2. Notebook 04 needs the manifest from 01, and 05 needs the adapter checkpoint from 04. Every step skips work whose output already exists, so it's safe to rerun cells or restart the runtime.
+5. **Don't save notebooks back to GitHub from Colab.** That commits all their outputs. Change code locally, and put new settings or paths in `configs/config.yaml`, never in notebook cells.
 
 **Private repo?** Add a Colab secret named `GITHUB_TOKEN` (key icon in the left sidebar) holding a fine-grained, read-only token for this repo. The setup cell uses it for clone and pull, and it never saves the token to `.git/config`.
 
