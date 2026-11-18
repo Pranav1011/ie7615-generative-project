@@ -189,3 +189,14 @@ def test_encode_and_save_roundtrip_weights_only(tmp_path):
     assert blob["pooled"].shape == (15, 8) and blob["pooled"].dtype == torch.float16
     assert blob["first_caption_hidden"].shape == (5, 77, 8)
     assert blob["first_caption_rows"] == [0, 3, 6, 9, 12] and blob["revision"] == "abc123"
+
+
+def test_bert_adapter_shape_and_dtype():
+    import torch
+    from src.bert_adapter import BertToClipAdapter
+
+    adapter = BertToClipAdapter(hidden_dim=768, num_layers=2, dropout=0.1)
+    dummy_bert = torch.randn(2, 77, 768)
+    out = adapter(dummy_bert)
+    assert out.shape == (2, 77, 768)
+    assert out.half().dtype == torch.float16
